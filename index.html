@@ -12,14 +12,26 @@
       <div class="time-selection">
         <div class="time-option">
           <label for="workTime">Work Time:</label>
-          <select id="workTime" class="time-select">
-            <option value="0.33">20 seconds (test)</option>
-            <option value="15">15 minutes</option>
-            <option value="25" selected>25 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="50">50 minutes</option>
-          </select>
+          <div class="time-select-wrapper">
+            <select id="workTime" class="time-select">
+              <option value="0.33">20 seconds (test)</option>
+              <option value="15">15 minutes</option>
+              <option value="25" selected>25 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="50">50 minutes</option>
+              <option value="custom">Custom time...</option>
+            </select>
+            <input 
+              type="number" 
+              id="customWorkTime" 
+              class="custom-time-input" 
+              min="1" 
+              max="120" 
+              placeholder="Minutes"
+              style="display: none;"
+            >
+          </div>
         </div>
         <div class="time-option">
           <label for="breakTime">Break Time:</label>
@@ -47,20 +59,30 @@
 
     <!-- Pleasant alarm sounds -->
     <audio id="workCompleteSound" preload="auto" loop>
-        <source src="https://assets.mixkit.co/active_storage/sfx/2575/2575-preview.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
+      <source
+        src="https://assets.mixkit.co/active_storage/sfx/2575/2575-preview.mp3"
+        type="audio/mpeg"
+      />
+      Your browser does not support the audio element.
     </audio>
     <audio id="breakCompleteSound" preload="auto" loop>
-        <source src="https://assets.mixkit.co/active_storage/sfx/2576/2576-preview.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
+      <source
+        src="https://assets.mixkit.co/active_storage/sfx/2576/2576-preview.mp3"
+        type="audio/mpeg"
+      />
+      Your browser does not support the audio element.
     </audio>
     <style>
-        /* Hide the audio controls */
-        audio { display: none; }
+      /* Hide the audio controls */
+      audio {
+        display: none;
+      }
     </style>
     <style>
-        /* Hide the audio controls */
-        audio { display: none; }
+      /* Hide the audio controls */
+      audio {
+        display: none;
+      }
     </style>
 
     <script>
@@ -114,8 +136,12 @@
       // Update durations when select values change
       function updateDurations() {
         if (!isRunning) {
-          const newWorkDuration = Math.round(parseFloat(workTimeSelect.value) * 60);
-          const newBreakDuration = Math.round(parseFloat(breakTimeSelect.value) * 60);
+          const newWorkDuration = Math.round(
+            parseFloat(workTimeSelect.value) * 60
+          );
+          const newBreakDuration = Math.round(
+            parseFloat(breakTimeSelect.value) * 60
+          );
 
           // Only update if values actually changed
           if (
@@ -141,42 +167,47 @@
       function playAlarm(soundType) {
         // Stop any currently playing alarm
         stopAlarm();
-        
-        const soundId = soundType === 'work' ? 'workCompleteSound' : 'breakCompleteSound';
+
+        const soundId =
+          soundType === "work" ? "workCompleteSound" : "breakCompleteSound";
         const alarm = document.getElementById(soundId);
-        
+
         // Set volume to be clear but not too loud (60%)
         alarm.volume = 0.6;
-        
+
         // Ensure audio is properly loaded
         alarm.load();
-        
+
         // Play the alarm with error handling
         const playPromise = new Promise((resolve) => {
           const playAttempt = alarm.play();
           if (playAttempt !== undefined) {
             playAttempt
               .then(() => resolve())
-              .catch(error => {
-                console.log('Audio play failed, trying again...', error);
+              .catch((error) => {
+                console.log("Audio play failed, trying again...", error);
                 // Try one more time after a small delay
                 setTimeout(() => {
-                  alarm.play().catch(e => console.log('Second play attempt failed:', e));
+                  alarm
+                    .play()
+                    .catch((e) =>
+                      console.log("Second play attempt failed:", e)
+                    );
                 }, 100);
               });
           }
         });
-        
+
         // Stop the alarm after 8 seconds (longer duration)
         alarmTimeout = setTimeout(() => {
           stopAlarm();
         }, 8000);
       }
-      
+
       // Stop all alarm sounds
       function stopAlarm() {
-        document.getElementById('workCompleteSound').pause();
-        document.getElementById('breakCompleteSound').pause();
+        document.getElementById("workCompleteSound").pause();
+        document.getElementById("breakCompleteSound").pause();
         clearTimeout(alarmTimeout);
       }
 
@@ -189,14 +220,14 @@
           // Check if we're switching from work to break or vice versa
           if (isWorkTime) {
             // Work period ended, start break
-            playAlarm('work');
+            playAlarm("work");
             isWorkTime = false;
             timeLeft = breakDuration;
             statusDisplay.textContent = "Take a break! 😌";
             document.body.className = "break-bg";
           } else {
             // Break ended, start work
-            playAlarm('break');
+            playAlarm("break");
             isWorkTime = true;
             timeLeft = workDuration;
             statusDisplay.textContent = "Back to work! 💪";
@@ -243,9 +274,70 @@
         stopAlarm();
       });
 
-      // Event listeners for time selection changes
-      workTimeSelect.addEventListener("change", updateDurations);
+      // Get custom time input element
+      const customWorkTimeInput = document.getElementById('customWorkTime');
+
+      // Handle custom time input
+      workTimeSelect.addEventListener("change", () => {
+        if (workTimeSelect.value === 'custom') {
+          customWorkTimeInput.style.display = 'block';
+          customWorkTimeInput.focus();
+          customWorkTimeInput.value = '';
+        } else {
+          customWorkTimeInput.style.display = 'none';
+        }
+        updateDurations();
+      });
+
+      // Handle custom time input changes
+      customWorkTimeInput.addEventListener('input', () => {
+        // Ensure value is within bounds
+        let minutes = parseInt(customWorkTimeInput.value) || 0;
+        if (minutes > 120) {
+          minutes = 120;
+          customWorkTimeInput.value = '120';
+        } else if (minutes < 1 && customWorkTimeInput.value !== '') {
+          minutes = 1;
+          customWorkTimeInput.value = '1';
+        }
+        
+        if (minutes > 0) {
+          updateDurations();
+        }
+      });
+
+      // Handle break time changes
       breakTimeSelect.addEventListener("change", updateDurations);
+
+      // Update durations based on current selection
+      function updateDurations() {
+        if (!isRunning) {
+          let workMinutes;
+          
+          if (workTimeSelect.value === 'custom') {
+            workMinutes = parseInt(customWorkTimeInput.value) || 0;
+            if (workMinutes < 1 || workMinutes > 120) return; // Don't update if invalid
+          } else {
+            workMinutes = parseFloat(workTimeSelect.value);
+          }
+          
+          const newWorkDuration = Math.round(workMinutes * 60);
+          const newBreakDuration = Math.round(parseFloat(breakTimeSelect.value) * 60);
+
+          if (workDuration !== newWorkDuration || breakDuration !== newBreakDuration) {
+            workDuration = newWorkDuration;
+            breakDuration = newBreakDuration;
+
+            if (isWorkTime) {
+              timeLeft = workDuration;
+            } else {
+              timeLeft = breakDuration;
+            }
+
+            updateDisplay();
+          }
+        }
+      }
 
       // Initialize the display
       updateDurations();
