@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="work-bg">
+    <div class="container">
+        <h1>Pomodoro Timer</h1>
+        <div class="timer" id="time">25:00</div>
+        <div class="status" id="status">Ready to work!</div>
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const timeDisplay = document.getElementById('time');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusDisplay = document.getElementById('status');
+        
+        let workDuration = 25 * 60; // 25 minutes in seconds
+        let breakDuration = 5 * 60;  // 5 minutes in seconds
+        let timeLeft = workDuration;
+        let timerId = null;
+        let isWorkTime = true;
+        let isRunning = false;
+
+        // Format time as MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update the timer display
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeLeft);
+        }
+
+        // Timer function
+        function tick() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+            } else {
+                // Switch between work and break
+                if (isWorkTime) {
+                    // Work period ended, start break
+                    isWorkTime = false;
+                    timeLeft = breakDuration;
+                    statusDisplay.textContent = 'Take a break!';
+                    document.body.className = 'break-bg';
+                } else {
+                    // Break ended, start work
+                    isWorkTime = true;
+                    timeLeft = workDuration;
+                    statusDisplay.textContent = 'Back to work!';
+                    document.body.className = 'work-bg';
+                }
+                updateDisplay();
+            }
+        }
+
+        // Start/Pause button click handler
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                // Start the timer
+                timerId = setInterval(tick, 1000);
+                startBtn.textContent = 'Pause';
+                statusDisplay.textContent = isWorkTime ? 'Time to focus!' : 'Take a break!';
+            } else {
+                // Pause the timer
+                clearInterval(timerId);
+                startBtn.textContent = 'Resume';
+                statusDisplay.textContent = 'Paused';
+            }
+            isRunning = !isRunning;
+        });
+
+        // Reset button click handler
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timerId);
+            isRunning = false;
+            isWorkTime = true;
+            timeLeft = workDuration;
+            startBtn.textContent = 'Start';
+            statusDisplay.textContent = 'Ready to work!';
+            document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+            updateDisplay();
+        });
+
+        // Initialize the display
+        updateDisplay();
+    </script>
+</body>
+</html>
