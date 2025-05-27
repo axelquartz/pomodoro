@@ -13,6 +13,7 @@
         <div class="time-option">
           <label for="workTime">Work Time:</label>
           <select id="workTime" class="time-select">
+            <option value="0.33">20 seconds (test)</option>
             <option value="15">15 minutes</option>
             <option value="25" selected>25 minutes</option>
             <option value="30">30 minutes</option>
@@ -43,6 +44,24 @@
         <button id="resetBtn">Reset</button>
       </div>
     </div>
+
+    <!-- Pleasant alarm sounds -->
+    <audio id="workCompleteSound" preload="auto" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/2575/2575-preview.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="breakCompleteSound" preload="auto" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/2576/2576-preview.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <style>
+        /* Hide the audio controls */
+        audio { display: none; }
+    </style>
+    <style>
+        /* Hide the audio controls */
+        audio { display: none; }
+    </style>
 
     <script>
       const timeDisplay = document.getElementById("time");
@@ -95,8 +114,8 @@
       // Update durations when select values change
       function updateDurations() {
         if (!isRunning) {
-          const newWorkDuration = parseInt(workTimeSelect.value) * 60;
-          const newBreakDuration = parseInt(breakTimeSelect.value) * 60;
+          const newWorkDuration = Math.round(parseFloat(workTimeSelect.value) * 60);
+          const newBreakDuration = Math.round(parseFloat(breakTimeSelect.value) * 60);
 
           // Only update if values actually changed
           if (
@@ -117,24 +136,70 @@
         }
       }
 
+      // Play alarm sound
+      let alarmTimeout;
+      function playAlarm(soundType) {
+        // Stop any currently playing alarm
+        stopAlarm();
+        
+        const soundId = soundType === 'work' ? 'workCompleteSound' : 'breakCompleteSound';
+        const alarm = document.getElementById(soundId);
+        
+        // Set volume to be clear but not too loud (60%)
+        alarm.volume = 0.6;
+        
+        // Ensure audio is properly loaded
+        alarm.load();
+        
+        // Play the alarm with error handling
+        const playPromise = new Promise((resolve) => {
+          const playAttempt = alarm.play();
+          if (playAttempt !== undefined) {
+            playAttempt
+              .then(() => resolve())
+              .catch(error => {
+                console.log('Audio play failed, trying again...', error);
+                // Try one more time after a small delay
+                setTimeout(() => {
+                  alarm.play().catch(e => console.log('Second play attempt failed:', e));
+                }, 100);
+              });
+          }
+        });
+        
+        // Stop the alarm after 8 seconds (longer duration)
+        alarmTimeout = setTimeout(() => {
+          stopAlarm();
+        }, 8000);
+      }
+      
+      // Stop all alarm sounds
+      function stopAlarm() {
+        document.getElementById('workCompleteSound').pause();
+        document.getElementById('breakCompleteSound').pause();
+        clearTimeout(alarmTimeout);
+      }
+
       // Timer function
       function tick() {
         if (timeLeft > 0) {
           timeLeft--;
           updateDisplay();
         } else {
-          // Switch between work and break
+          // Check if we're switching from work to break or vice versa
           if (isWorkTime) {
             // Work period ended, start break
+            playAlarm('work');
             isWorkTime = false;
             timeLeft = breakDuration;
-            statusDisplay.textContent = "Take a break!";
+            statusDisplay.textContent = "Take a break! 😌";
             document.body.className = "break-bg";
           } else {
             // Break ended, start work
+            playAlarm('break');
             isWorkTime = true;
             timeLeft = workDuration;
-            statusDisplay.textContent = "Back to work!";
+            statusDisplay.textContent = "Back to work! 💪";
             document.body.className = "work-bg";
           }
           updateDisplay();
@@ -164,15 +229,18 @@
         clearInterval(timerId);
         isRunning = false;
         isWorkTime = true;
-        workDuration = parseInt(workTimeSelect.value) * 60;
-        breakDuration = parseInt(breakTimeSelect.value) * 60;
-        timeLeft = workDuration;
+        // Update durations from the current select values
+        workDuration = Math.round(parseFloat(workTimeSelect.value) * 60);
+        breakDuration = Math.round(parseFloat(breakTimeSelect.value) * 60);
+        timeLeft = workDuration; // Reset to full work duration
         startBtn.textContent = "Start";
         statusDisplay.textContent = "Ready to work!";
         document.body.className = "work-bg";
         // Reset progress ring
         progressRing.style.strokeDashoffset = circumference;
         updateDisplay();
+        // Stop any playing alarms
+        stopAlarm();
       });
 
       // Event listeners for time selection changes
