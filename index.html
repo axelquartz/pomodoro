@@ -1,152 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pomodoro Timer</title>
-    <link rel="stylesheet" href="styles/main.css">
-</head>
-<body class="work-bg">
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
+  <body class="work-bg">
     <div class="container">
-        <h1>Pomodoro Timer</h1>
-        <div class="time-selection">
-            <div class="time-option">
-                <label for="workTime">Work Time:</label>
-                <select id="workTime" class="time-select">
-                    <option value="15">15 minutes</option>
-                    <option value="25" selected>25 minutes</option>
-                    <option value="30">30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="50">50 minutes</option>
-                </select>
-            </div>
-            <div class="time-option">
-                <label for="breakTime">Break Time:</label>
-                <select id="breakTime" class="time-select">
-                    <option value="5" selected>5 minutes</option>
-                    <option value="10">10 minutes</option>
-                    <option value="15">15 minutes</option>
-                    <option value="20">20 minutes</option>
-                </select>
-            </div>
+      <h1>Pomodoro Timer</h1>
+      <div class="time-selection">
+        <div class="time-option">
+          <label for="workTime">Work Time:</label>
+          <select id="workTime" class="time-select">
+            <option value="15">15 minutes</option>
+            <option value="25" selected>25 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="50">50 minutes</option>
+          </select>
         </div>
+        <div class="time-option">
+          <label for="breakTime">Break Time:</label>
+          <select id="breakTime" class="time-select">
+            <option value="5" selected>5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="20">20 minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="timer-container">
+        <svg class="progress-ring" viewBox="0 0 200 200">
+          <circle class="progress-ring__background" cx="100" cy="100" r="90" />
+          <circle class="progress-ring__circle" cx="100" cy="100" r="90" />
+        </svg>
         <div class="timer" id="time">25:00</div>
-        <div class="status" id="status">Ready to work!</div>
-        <div class="controls">
-            <button id="startBtn">Start</button>
-            <button id="resetBtn">Reset</button>
-        </div>
+      </div>
+      <div class="status" id="status">Ready to work!</div>
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="resetBtn">Reset</button>
+      </div>
     </div>
 
     <script>
-        const timeDisplay = document.getElementById('time');
-        const startBtn = document.getElementById('startBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const statusDisplay = document.getElementById('status');
-        const workTimeSelect = document.getElementById('workTime');
-        const breakTimeSelect = document.getElementById('breakTime');
-        
-        let workDuration = parseInt(workTimeSelect.value) * 60; // in seconds
-        let breakDuration = parseInt(breakTimeSelect.value) * 60; // in seconds
-        let timeLeft = workDuration;
-        let timerId = null;
-        let isWorkTime = true;
-        let isRunning = false;
+      const timeDisplay = document.getElementById("time");
+      const startBtn = document.getElementById("startBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const statusDisplay = document.getElementById("status");
+      const workTimeSelect = document.getElementById("workTime");
+      const breakTimeSelect = document.getElementById("breakTime");
 
-        // Format time as MM:SS
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
+      let workDuration = parseInt(workTimeSelect.value) * 60; // in seconds
+      let breakDuration = parseInt(breakTimeSelect.value) * 60; // in seconds
+      let timeLeft = workDuration;
+      let timerId = null;
+      let isWorkTime = true;
+      let isRunning = false;
 
-        // Update the timer display
-        function updateDisplay() {
-            timeDisplay.textContent = formatTime(timeLeft);
-        }
+      // Get the progress ring element
+      const progressRing = document.querySelector(".progress-ring__circle");
+      const radius = progressRing.r.baseVal.value;
+      const circumference = radius * 2 * Math.PI;
 
-        // Update durations when select values change
-        function updateDurations() {
-            if (!isRunning) {
-                const newWorkDuration = parseInt(workTimeSelect.value) * 60;
-                const newBreakDuration = parseInt(breakTimeSelect.value) * 60;
-                
-                // Only update if values actually changed
-                if (workDuration !== newWorkDuration || breakDuration !== newBreakDuration) {
-                    workDuration = newWorkDuration;
-                    breakDuration = newBreakDuration;
-                    
-                    if (isWorkTime) {
-                        timeLeft = workDuration;
-                    } else {
-                        timeLeft = breakDuration;
-                    }
-                    
-                    updateDisplay();
-                }
-            }
-        }
+      // Set initial progress
+      progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+      progressRing.style.strokeDashoffset = circumference;
 
-        // Timer function
-        function tick() {
-            if (timeLeft > 0) {
-                timeLeft--;
-                updateDisplay();
+      // Format time as MM:SS
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, "0")}:${secs
+          .toString()
+          .padStart(2, "0")}`;
+      }
+
+      // Update progress ring
+      function updateProgress(percent) {
+        const offset = circumference - (percent / 100) * circumference;
+        progressRing.style.strokeDashoffset = offset;
+      }
+
+      // Update the timer display
+      function updateDisplay() {
+        timeDisplay.textContent = formatTime(timeLeft);
+        // Calculate progress percentage
+        const totalTime = isWorkTime ? workDuration : breakDuration;
+        const progress = ((totalTime - timeLeft) / totalTime) * 100;
+        updateProgress(progress);
+      }
+
+      // Update durations when select values change
+      function updateDurations() {
+        if (!isRunning) {
+          const newWorkDuration = parseInt(workTimeSelect.value) * 60;
+          const newBreakDuration = parseInt(breakTimeSelect.value) * 60;
+
+          // Only update if values actually changed
+          if (
+            workDuration !== newWorkDuration ||
+            breakDuration !== newBreakDuration
+          ) {
+            workDuration = newWorkDuration;
+            breakDuration = newBreakDuration;
+
+            if (isWorkTime) {
+              timeLeft = workDuration;
             } else {
-                // Switch between work and break
-                if (isWorkTime) {
-                    // Work period ended, start break
-                    isWorkTime = false;
-                    timeLeft = breakDuration;
-                    statusDisplay.textContent = 'Take a break!';
-                    document.body.className = 'break-bg';
-                } else {
-                    // Break ended, start work
-                    isWorkTime = true;
-                    timeLeft = workDuration;
-                    statusDisplay.textContent = 'Back to work!';
-                    document.body.className = 'work-bg';
-                }
-                updateDisplay();
+              timeLeft = breakDuration;
             }
-        }
 
-        // Start/Pause button click handler
-        startBtn.addEventListener('click', () => {
-            if (!isRunning) {
-                // Start the timer
-                timerId = setInterval(tick, 1000);
-                startBtn.textContent = 'Pause';
-                statusDisplay.textContent = isWorkTime ? 'Time to focus!' : 'Take a break!';
-            } else {
-                // Pause the timer
-                clearInterval(timerId);
-                startBtn.textContent = 'Resume';
-                statusDisplay.textContent = 'Paused';
-            }
-            isRunning = !isRunning;
-        });
-
-        // Reset button click handler
-        resetBtn.addEventListener('click', () => {
-            clearInterval(timerId);
-            isRunning = false;
-            isWorkTime = true;
-            workDuration = parseInt(workTimeSelect.value) * 60;
-            breakDuration = parseInt(breakTimeSelect.value) * 60;
-            timeLeft = workDuration;
-            startBtn.textContent = 'Start';
-            statusDisplay.textContent = 'Ready to work!';
-            document.body.className = 'work-bg';
             updateDisplay();
-        });
+          }
+        }
+      }
 
-        // Event listeners for time selection changes
-        workTimeSelect.addEventListener('change', updateDurations);
-        breakTimeSelect.addEventListener('change', updateDurations);
+      // Timer function
+      function tick() {
+        if (timeLeft > 0) {
+          timeLeft--;
+          updateDisplay();
+        } else {
+          // Switch between work and break
+          if (isWorkTime) {
+            // Work period ended, start break
+            isWorkTime = false;
+            timeLeft = breakDuration;
+            statusDisplay.textContent = "Take a break!";
+            document.body.className = "break-bg";
+          } else {
+            // Break ended, start work
+            isWorkTime = true;
+            timeLeft = workDuration;
+            statusDisplay.textContent = "Back to work!";
+            document.body.className = "work-bg";
+          }
+          updateDisplay();
+        }
+      }
 
-        // Initialize the display
-        updateDurations();
+      // Start/Pause button click handler
+      startBtn.addEventListener("click", () => {
+        if (!isRunning) {
+          // Start the timer
+          timerId = setInterval(tick, 1000);
+          startBtn.textContent = "Pause";
+          statusDisplay.textContent = isWorkTime
+            ? "Time to focus!"
+            : "Take a break!";
+        } else {
+          // Pause the timer
+          clearInterval(timerId);
+          startBtn.textContent = "Resume";
+          statusDisplay.textContent = "Paused";
+        }
+        isRunning = !isRunning;
+      });
+
+      // Reset button click handler
+      resetBtn.addEventListener("click", () => {
+        clearInterval(timerId);
+        isRunning = false;
+        isWorkTime = true;
+        workDuration = parseInt(workTimeSelect.value) * 60;
+        breakDuration = parseInt(breakTimeSelect.value) * 60;
+        timeLeft = workDuration;
+        startBtn.textContent = "Start";
+        statusDisplay.textContent = "Ready to work!";
+        document.body.className = "work-bg";
+        // Reset progress ring
+        progressRing.style.strokeDashoffset = circumference;
+        updateDisplay();
+      });
+
+      // Event listeners for time selection changes
+      workTimeSelect.addEventListener("change", updateDurations);
+      breakTimeSelect.addEventListener("change", updateDurations);
+
+      // Initialize the display
+      updateDurations();
     </script>
-</body>
+  </body>
 </html>
