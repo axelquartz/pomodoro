@@ -9,6 +9,27 @@
 <body class="work-bg">
     <div class="container">
         <h1>Pomodoro Timer</h1>
+        <div class="time-selection">
+            <div class="time-option">
+                <label for="workTime">Work Time:</label>
+                <select id="workTime" class="time-select">
+                    <option value="15">15 minutes</option>
+                    <option value="25" selected>25 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="50">50 minutes</option>
+                </select>
+            </div>
+            <div class="time-option">
+                <label for="breakTime">Break Time:</label>
+                <select id="breakTime" class="time-select">
+                    <option value="5" selected>5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                </select>
+            </div>
+        </div>
         <div class="timer" id="time">25:00</div>
         <div class="status" id="status">Ready to work!</div>
         <div class="controls">
@@ -22,9 +43,11 @@
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
         const statusDisplay = document.getElementById('status');
+        const workTimeSelect = document.getElementById('workTime');
+        const breakTimeSelect = document.getElementById('breakTime');
         
-        let workDuration = 25 * 60; // 25 minutes in seconds
-        let breakDuration = 5 * 60;  // 5 minutes in seconds
+        let workDuration = parseInt(workTimeSelect.value) * 60; // in seconds
+        let breakDuration = parseInt(breakTimeSelect.value) * 60; // in seconds
         let timeLeft = workDuration;
         let timerId = null;
         let isWorkTime = true;
@@ -40,6 +63,28 @@
         // Update the timer display
         function updateDisplay() {
             timeDisplay.textContent = formatTime(timeLeft);
+        }
+
+        // Update durations when select values change
+        function updateDurations() {
+            if (!isRunning) {
+                const newWorkDuration = parseInt(workTimeSelect.value) * 60;
+                const newBreakDuration = parseInt(breakTimeSelect.value) * 60;
+                
+                // Only update if values actually changed
+                if (workDuration !== newWorkDuration || breakDuration !== newBreakDuration) {
+                    workDuration = newWorkDuration;
+                    breakDuration = newBreakDuration;
+                    
+                    if (isWorkTime) {
+                        timeLeft = workDuration;
+                    } else {
+                        timeLeft = breakDuration;
+                    }
+                    
+                    updateDisplay();
+                }
+            }
         }
 
         // Timer function
@@ -87,15 +132,21 @@
             clearInterval(timerId);
             isRunning = false;
             isWorkTime = true;
+            workDuration = parseInt(workTimeSelect.value) * 60;
+            breakDuration = parseInt(breakTimeSelect.value) * 60;
             timeLeft = workDuration;
             startBtn.textContent = 'Start';
             statusDisplay.textContent = 'Ready to work!';
-            document.body.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+            document.body.className = 'work-bg';
             updateDisplay();
         });
 
+        // Event listeners for time selection changes
+        workTimeSelect.addEventListener('change', updateDurations);
+        breakTimeSelect.addEventListener('change', updateDurations);
+
         // Initialize the display
-        updateDisplay();
+        updateDurations();
     </script>
 </body>
 </html>
